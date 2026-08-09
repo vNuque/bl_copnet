@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 
 name 'bl_copnet'
-author 'BlackLeaf'
+author 'bl_james and bl_michael'
 description 'CopNet Bridge – Duty, GPS, Personen- & Fahrzeug-Sync'
 version '1.0.0'
 

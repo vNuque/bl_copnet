@@ -146,14 +146,26 @@ function BlCopNet.SyncAllUsers(cb)
   local total = #rows
   local created = 0
   local updated = 0
+  local skipped = 0
   local failed = 0
 
   BlCopNet.Warn('Full-Sync gestartet: %s Charaktere', total)
 
   local function sendBatch()
     if index > total then
-      BlCopNet.Warn('Full-Sync fertig: created=%s updated=%s failed=%s', created, updated, failed)
-      if cb then cb(true, { created = created, updated = updated, failed = failed, total = total }) end
+      BlCopNet.Warn(
+        'Full-Sync fertig: created=%s updated=%s skipped=%s failed=%s',
+        created, updated, skipped, failed
+      )
+      if cb then
+        cb(true, {
+          created = created,
+          updated = updated,
+          skipped = skipped,
+          failed = failed,
+          total = total,
+        })
+      end
       return
     end
 
@@ -174,6 +186,7 @@ function BlCopNet.SyncAllUsers(cb)
       if ok and data then
         created = created + (tonumber(data.created) or 0)
         updated = updated + (tonumber(data.updated) or 0)
+        skipped = skipped + (tonumber(data.skipped) or 0)
         failed = failed + (tonumber(data.failed) or 0)
       else
         failed = failed + #batch

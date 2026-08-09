@@ -26,7 +26,7 @@ Config.FullDbSyncBatchSize = 40
 Config.FullDbSyncDelayMs = 750
 
 -- Debug-Logs in der Server-Konsole
-Config.Debug = false
+Config.Debug = true
 
 -- Manuelle Commands (ACE: command.blcopnet)
 Config.Commands = {
