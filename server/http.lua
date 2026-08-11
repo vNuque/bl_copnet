@@ -23,7 +23,21 @@ function BlCopNet.Request(method, path, body, cb)
   end
 
   local url = base .. path
-  local payload = body and json.encode(body) or ''
+  local payload = ''
+  if method ~= 'GET' and method ~= 'HEAD' then
+    payload = body and json.encode(body) or ''
+  elseif type(body) == 'table' then
+    local parts = {}
+    for k, v in pairs(body) do
+      parts[#parts + 1] = ('%s=%s'):format(tostring(k), tostring(v):gsub('([^%w%-_%.~])', function(c)
+        return ('%%%02X'):format(string.byte(c))
+      end))
+    end
+    if #parts > 0 then
+      url = url .. (url:find('?', 1, true) and '&' or '?') .. table.concat(parts, '&')
+    end
+  end
+
   local headers = {
     ['Content-Type'] = 'application/json',
     ['x-copnet-fivem-token'] = token,

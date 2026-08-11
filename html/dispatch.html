@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: rgba(28, 30, 36, 0.94);
+      --bg-focus: rgba(36, 40, 50, 0.96);
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --chip: #3a3f4b;
+      --accent: #60a5fa;
+      --ok: #34d399;
+      --frame: rgba(15, 17, 23, 0.97);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: transparent;
+      overflow: hidden;
+      color: var(--text);
+    }
+    #stack {
+      position: absolute;
+      top: 12vh;
+      left: 2.2vw;
+      width: min(360px, 28vw);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+    }
+    .card {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 14px 16px 12px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.04);
+      opacity: .92;
+      transform: translateX(0);
+      transition: border-color .15s ease, opacity .15s ease;
+    }
+    .card.focused {
+      background: var(--bg-focus);
+      border-color: rgba(96,165,250,.55);
+      opacity: 1;
+    }
+    .head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .chip {
+      background: var(--chip);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+    .title {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .badge {
+      width: 22px;
+      height: 22px;
+      opacity: .85;
+      flex: 0 0 auto;
+    }
+    .rows { display: flex; flex-direction: column; gap: 6px; }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .row svg { width: 14px; height: 14px; flex: 0 0 auto; opacity: .8; }
+    .row strong { color: var(--text); font-weight: 600; }
+    .foot {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .hint { color: var(--accent); font-weight: 600; }
+    .ago { display: flex; align-items: center; gap: 6px; }
+
+    #tablet {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.55);
+      align-items: stretch;
+      justify-content: stretch;
+      padding: 3vh 3vw;
+    }
+    #tablet.open { display: flex; }
+    .tablet-frame {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--frame);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+    .tablet-bar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.04);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .tablet-bar strong { letter-spacing: .04em; font-size: 13px; }
+    .tablet-bar .spacer { flex: 1; }
+    .tablet-bar button {
+      background: #374151;
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tablet-bar button:hover { background: #4b5563; }
+    .tablet-status {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    #tablet-frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: #0b0f17;
+    }
+  </style>
+</head>
+<body>
+  <div id="stack"></div>
+
+  <div id="tablet" aria-hidden="true">
+    <div class="tablet-frame">
+      <div class="tablet-bar">
+        <strong>BLACKLEAF COPNET</strong>
+        <span class="tablet-status" id="tablet-status">Laden…</span>
+        <span class="spacer"></span>
+        <button type="button" id="tablet-close">Schließen (ESC)</button>
+      </div>
+      <iframe id="tablet-frame" title="CopNet" allow="clipboard-read; clipboard-write"></iframe>
+    </div>
+  </div>
+
+  <script>
+    const stack = document.getElementById('stack');
+    const tablet = document.getElementById('tablet');
+    const tabletFrame = document.getElementById('tablet-frame');
+    const tabletStatus = document.getElementById('tablet-status');
+
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[c]);
+    }
+
+    function icon(name) {
+      const paths = {
+        pin: '<path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>',
+        road: '<path d="M11 2 4 22h3l1.3-4h7.4L17 22h3L13 2h-2zm-.2 12L12 6.5 13.2 14h-2.4z"/>',
+        user: '<path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-8 2-8 4v2h16v-2c0-2-4-4-8-4z"/>',
+        car: '<path d="M5 11 6.5 6.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11h1a1 1 0 0 1 1 1v5h-2v2h-2v-2H7v2H5v-2H3v-5a1 1 0 0 1 1-1h1zm2.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>',
+        plate: '<path d="M3 7h18v10H3V7zm2 2v6h14V9H5z"/>',
+        color: '<path d="M12 3a9 9 0 0 0 0 18c.8 0 1.5-.7 1.5-1.5 0-.4-.1-.7-.4-1-.2-.3-.3-.6-.3-1a1.5 1.5 0 0 1 1.5-1.5H16a5 5 0 0 0 0-10H12zm-5 7.5A1.5 1.5 0 1 1 8.5 9 1.5 1.5 0 0 1 7 10.5zm3-4A1.5 1.5 0 1 1 11.5 5 1.5 1.5 0 0 1 10 6.5zm4 0A1.5 1.5 0 1 1 15.5 5 1.5 1.5 0 0 1 14 6.5zm3 4A1.5 1.5 0 1 1 18.5 9 1.5 1.5 0 0 1 17 10.5z"/>',
+        clock: '<path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 11H7v-2h4V6h2z"/>',
+        badge: '<path d="M12 2 8 4v4c0 4 2.5 7.5 4 9 1.5-1.5 4-5 4-9V4l-4-2zm0 5a2 2 0 1 1-2 2 2 2 0 0 1 2-2z"/>',
+      };
+      return `<svg viewBox="0 0 24 24" fill="currentColor">${paths[name] || ''}</svg>`;
+    }
+
+    function timeAgo(iso) {
+      if (!iso) return '';
+      const t = Date.parse(iso);
+      if (!Number.isFinite(t)) return '';
+      const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+      if (sec < 5) return 'Gerade eben';
+      if (sec < 60) return sec + ' Sek. zuvor';
+      const min = Math.floor(sec / 60);
+      if (min < 60) return min + ' Min. zuvor';
+      return Math.floor(min / 60) + ' Std. zuvor';
+    }
+
+    function row(ico, text) {
+      if (!text) return '';
+      return `<div class="row">${icon(ico)}<span>${esc(text)}</span></div>`;
+    }
+
+    function render(calls) {
+      if (!Array.isArray(calls) || !calls.length) {
+        stack.innerHTML = '';
+        return;
+      }
+      stack.innerHTML = calls.map((c, idx) => {
+        const d = c.details || {};
+        const loc = c.locationText || [d.postal && ('PLZ ' + d.postal), d.street, d.district].filter(Boolean).join(', ');
+        const dist = Number.isFinite(c.distance) ? (c.distance + ' Meter') : null;
+        const lines = [
+          row('pin', loc),
+          row('road', dist),
+          row('user', d.gender || null),
+          row('user', d.personName || null),
+          row('car', d.vehicle || null),
+          row('plate', d.plate || null),
+          row('color', d.color || null),
+        ].join('');
+        return `
+          <article class="card ${c.focused ? 'focused' : ''}">
+            <div class="head">
+              <span class="chip">#${esc(c.seq || (idx + 1))}</span>
+              ${c.code ? `<span class="chip">${esc(c.code)}</span>` : ''}
+              <div class="title">${esc(c.title || 'Einsatz')}</div>
+              <div class="badge">${icon('badge')}</div>
+            </div>
+            <div class="rows">${lines}</div>
+            <div class="foot">
+              <span class="hint">${c.focused ? 'Annehmen-Taste' : ''}</span>
+              <span class="ago">${icon('clock')}${esc(timeAgo(c.createdAt))}</span>
+            </div>
+          </article>`;
+      }).join('');
+    }
+
+    function closeTablet() {
+      tablet.classList.remove('open');
+      tablet.setAttribute('aria-hidden', 'true');
+      tabletFrame.removeAttribute('src');
+      tabletStatus.textContent = '';
+      fetch(`https://${GetParentResourceName()}/tabletClose`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }).catch(() => {});
+    }
+
+    function openTablet(url, label) {
+      tabletStatus.textContent = label || 'CopNet';
+      tabletFrame.src = url || 'about:blank';
+      tablet.classList.add('open');
+      tablet.setAttribute('aria-hidden', 'false');
+    }
+
+    document.getElementById('tablet-close').addEventListener('click', closeTablet);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && tablet.classList.contains('open')) {
+        e.preventDefault();
+        closeTablet();
+      }
+    });
+
+    window.addEventListener('message', (e) => {
+      const data = e.data || {};
+      if (data.action === 'setCalls') render(data.calls || []);
+      if (data.action === 'openTablet') openTablet(data.url, data.label);
+      if (data.action === 'closeTablet') closeTablet();
+    });
+  </script>
+</body>
+</html>
