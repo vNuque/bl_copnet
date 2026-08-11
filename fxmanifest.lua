@@ -33,6 +33,7 @@ server_scripts {
   'server/actions.lua',
   'server/dispatch.lua',
   'server/tablet.lua',
+  'server/lookup.lua',
   'server/main.lua',
 }
 

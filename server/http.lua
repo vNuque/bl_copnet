@@ -81,3 +81,54 @@ function BlCopNet.SyncCharacters(characters, cb)
     characters = characters,
   }, cb)
 end
+
+--- Register-Lookups (Fahrzeug / Waffe / Person)
+
+function BlCopNet.LookupVehicles(opts, cb)
+  opts = type(opts) == 'table' and opts or { plate = opts }
+  BlCopNet.Request('GET', '/api/fivem/vehicles', {
+    plate = opts.plate,
+    q = opts.q or opts.search,
+    personId = opts.personId or opts.person_id,
+    limit = opts.limit,
+    includeAkte = opts.includeAkte == false and '0' or nil,
+  }, function(ok, data)
+    if cb then cb(ok, data) end
+  end)
+end
+
+function BlCopNet.LookupVehicle(plate, cb)
+  BlCopNet.LookupVehicles({ plate = plate }, function(ok, data)
+    local vehicle = ok and data and data.vehicles and data.vehicles[1] or nil
+    if cb then cb(ok and vehicle ~= nil, vehicle or data) end
+  end)
+end
+
+function BlCopNet.LookupWeapons(opts, cb)
+  opts = type(opts) == 'table' and opts or { serial = opts }
+  BlCopNet.Request('GET', '/api/fivem/weapons', {
+    serial = opts.serial or opts.serialNumber,
+    q = opts.q or opts.search,
+    personId = opts.personId or opts.person_id,
+    limit = opts.limit,
+  }, function(ok, data)
+    if cb then cb(ok, data) end
+  end)
+end
+
+function BlCopNet.LookupWeapon(serial, cb)
+  BlCopNet.LookupWeapons({ serial = serial }, function(ok, data)
+    local weapon = ok and data and data.weapons and data.weapons[1] or nil
+    if cb then cb(ok and weapon ~= nil, weapon or data) end
+  end)
+end
+
+function BlCopNet.LookupPerson(opts, cb)
+  opts = type(opts) == 'table' and opts or { externalIdentifier = opts }
+  BlCopNet.Request('GET', '/api/fivem/persons/lookup', {
+    externalIdentifier = opts.externalIdentifier or opts.identifier or opts.external_id,
+    personId = opts.personId or opts.person_id,
+  }, function(ok, data)
+    if cb then cb(ok, data) end
+  end)
+end

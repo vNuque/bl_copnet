@@ -29,6 +29,7 @@ Synchronisiert ESX-Charaktere, Fahrzeuge, Telefonnummern sowie Police-Duty/GPS m
 | Feature | Trigger |
 |---|---|
 | Person + Fahrzeuge + Telefon | Login, periodischer Resync, `/copnet_syncme`, `/copnet_syncall` |
+| Fahrzeug-/Waffen-Lookup | `/copnet_plate`, `/copnet_serial` + Exports |
 | Duty clock_in / clock_out | `esx:setJob` wenn Job in `Config.DutyJobs` und `onDuty` |
 | Live-Position | alle `PositionIntervalMs`, nur on-duty |
 | CAD-Status | Radial / F6-Menü / `/copnet_status <status>` |
@@ -77,5 +78,25 @@ Spieler können sie jederzeit selbst umbelegen: **Esc → Einstellungen → Tast
 | `/copnet_callsign L-21` | Streifencode |
 | `/copnet_panic` | Panic |
 | `/copnet_menu` | Einsatzmenü |
+| `/copnet_plate ABC123` | Fahrzeugregister-Lookup |
+| `/copnet_serial SN-1` | Waffenregister-Lookup |
+
+### Exports (andere Resources)
+
+```lua
+exports['bl_copnet']:LookupVehicle('ABC123', function(ok, vehicle)
+  -- vehicle.plate, model, ownerLabel, statusLabel, source ('register'|'person_akte')
+end)
+
+exports['bl_copnet']:LookupVehicles({ plate = 'ABC123' }, function(ok, data)
+  -- data.vehicles = { ... }
+end)
+
+exports['bl_copnet']:LookupWeapon('SN-1', function(ok, weapon) end)
+
+exports['bl_copnet']:LookupPerson({ identifier = 'char1:license:...' }, function(ok, data)
+  -- data.person, data.vehicles, data.weapons
+end)
+```
 
 ACE für Admin-Commands: `command.blcopnet` (wie zuvor für sync/duty).
