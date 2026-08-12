@@ -107,7 +107,7 @@ Config.Radial = {
 ]]
 Config.Panic = {
   requiredItem = 'panicbutton',
-  missingMessage = 'Kein Panic-Gerät dabei',           -- leer = still scheitern; sonst z.B. 'Kein Panic-Gerät dabei.'
+  missingMessage = 'Kein Panicbutton dabei',           -- leer = still scheitern; sonst z.B. 'Kein Panic-Gerät dabei.'
   registerUsable = true,         -- Item-Nutzung → Panic
   postal = {
     resource = 'hex_finalhud',
