@@ -35,6 +35,9 @@ Synchronisiert ESX-Charaktere, Fahrzeuge, Telefonnummern sowie Police-Duty/GPS m
 | CAD-Status | Radial / F6-Menü / `/copnet_status <status>` |
 | Streifencode | Radial / Menü / `/copnet_callsign L-21` |
 | Panic | Radial / F7 / `/copnet_panic` / Item nutzen → P1-CAD-Einsatz `PANIC` (nur mit Item, siehe `Config.Panic`) |
+| CopNet-Tablet | F9 / `/copnet_tablet` → volle CopNet-UI (Dashboard + Navigation) |
+| CAD-Alerts (Export) | `CreateCadAlert` / `CreateCadAlertAtPlayer` von anderen Resources |
+| Live-Karte | Start-Upload `html/livemap-map.png` + Bounds → CAD-Hintergrund; offene Calls als Marker |
 
 ## Dispatch-UI (zugeteilte Einsätze)
 
@@ -47,8 +50,14 @@ On-duty erscheinen links Call-Cards (wie CAD-Alarmierungen):
 
 Panic alarmiert alle on-duty Officers der Behörde und enthält GPS für den Wegpunkt.
 
+## CopNet-Tablet (volle UI)
 
-**Nicht** enthalten: Sky-MDT-Daten / volle Akten-UI.
+On-duty (Keybind **F9** / `/copnet_tablet`): NUI-Vollbild mit Login-Ticket → **gesamtes CopNet** (Dashboard, Personen, Akten, Register, …) im iframe – nicht nur CAD.
+
+- Startseite nach Login: `Config.Tablet.redirect` (Default `/dashboard`; z. B. `/persons` oder `/patrol` möglich)
+- Schließen: ESC oder Button in der Tablet-Leiste
+
+**Nicht** enthalten: Sky-MDT-Daten (eigenes System).
 
 ## Radialmenü (on-duty)
 
@@ -97,6 +106,60 @@ exports['bl_copnet']:LookupWeapon('SN-1', function(ok, weapon) end)
 exports['bl_copnet']:LookupPerson({ identifier = 'char1:license:...' }, function(ok, data)
   -- data.person, data.vehicles, data.weapons
 end)
+
+exports['bl_copnet']:CreateCadAlert({
+  title = 'Schüsse gemeldet',
+  code = 'SHOTS',
+  kind = 'shots_fired',
+  priority = 1,
+  x = 100.0, y = 200.0, z = 30.0,
+}, function(ok, data) end)
 ```
 
 ACE für Admin-Commands: `command.blcopnet` (wie zuvor für sync/duty).
+
+## CAD-Alerts von anderen Scripts
+
+Andere Resources können Einsätze direkt ans CAD schicken (Hausraub, Schüsse, Alarmierungen, …):
+
+```lua
+exports['bl_copnet']:CreateCadAlert({
+  title = 'Hausraub',
+  code = '10-90',
+  kind = 'house_robbery',
+  priority = 2,          -- 1=P1 … 5=P5
+  agencyId = 'lspd',     -- optional; sonst Config.CadAlerts.defaultAgencyId
+  x = coords.x, y = coords.y, z = coords.z,
+  street = 'Forum Drive',
+  postal = '123',
+  notes = 'Einbruchmeldung',
+  source = 'qs-housing', -- optional; Default = aufrufende Resource
+}, function(ok, data)
+  if ok then
+    print('CAD Call', data.call.id)
+  end
+end)
+
+-- Variante: Koordinaten vom Spieler
+exports['bl_copnet']:CreateCadAlertAtPlayer(src, {
+  title = 'Schüsse gemeldet',
+  code = 'SHOTS',
+  kind = 'shots_fired',
+  priority = 1,
+}, cb)
+```
+
+Config: `Config.CadAlerts` (`enabled`, `defaultAgencyId`, `defaultPriority`).
+CopNet muss die Route `/api/fivem/cad/alerts` deployen.
+
+## Live-Karte (Dispatch)
+
+Beim Start pusht `bl_copnet` Kartenbild + Bounds an CopNet. Offene CAD-Calls mit Koordinaten erscheinen als Marker auf der Karte (Units = Kreise, Calls = Dreiecke).
+
+1. Eigene GTA-Karte nach `html/livemap-map.png` legen (siehe `html/LIVEMAP.md`)
+2. Bounds in `Config.LiveMap.bounds` an die Bild-Kalibrierung anpassen
+3. CopNet + Resource neu starten → Upload automatisch (`uploadOnStart`)
+
+Manuell: `exports['bl_copnet']:UploadLiveMap(cb)`
+
+API: `POST /api/fivem/livemap/map` mit `imageBase64` + `bounds`.

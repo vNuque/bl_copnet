@@ -77,10 +77,10 @@ Config.Keybinds = {
   },
 }
 
--- CopNet-Vollbild-Tablet (NUI → Login-Ticket → Officer-CAD)
+-- CopNet-Vollbild-Tablet (NUI → Login-Ticket → volle CopNet-UI)
 Config.Tablet = {
   enabled = true,
-  redirect = '/patrol', -- Startseite nach Login (/patrol oder /dispatch)
+  redirect = '/dashboard', -- Startseite nach Login (z.B. /dashboard, /persons, /patrol)
 }
 
 -- Zugeteilte CAD-Einsätze (Ingame-Cards)
@@ -116,6 +116,35 @@ Config.Panic = {
   },
 }
 
+
+-- CAD-Alerts von anderen Resources (Hausraub, Schüsse, …)
+-- agencyId: CopNet-Behörden-Schlüssel (z.B. 'lspd'). Leer = Config.CadAlerts.defaultAgencyId
+Config.CadAlerts = {
+  enabled = true,
+  defaultAgencyId = 'lspd',
+  defaultPriority = 2, -- 1=P1 … 5=P5
+}
+
+--[[
+  Live-Karte für CopNet Dispatch
+
+  imageFile: Pfad relativ zur Resource (muss in fxmanifest `files` stehen).
+  Beim Start (uploadOnStart) wird Bild + Bounds an CopNet gepusht und dort
+  als Hintergrund der CAD-Live-Karte genutzt.
+]]
+Config.LiveMap = {
+  enabled = true,
+  uploadOnStart = true,
+  uploadDelayMs = 4000,
+  imageFile = 'html/livemap-map.png', -- PNG/JPG hier ablegen
+  -- contentType = 'image/png', -- optional, sonst aus Dateiendung
+  bounds = {
+    xMin = -4000,
+    xMax = 4500,
+    yMin = -4000,
+    yMax = 8000,
+  },
+}
 
 -- CAD-Status-Optionen (Werte = CopNet unit_status)
 Config.Statuses = {

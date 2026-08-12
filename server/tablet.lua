@@ -10,7 +10,7 @@ RegisterNetEvent('bl_copnet:requestTablet', function()
     return
   end
 
-  local redirect = (Config.Tablet and Config.Tablet.redirect) or '/patrol'
+  local redirect = (Config.Tablet and Config.Tablet.redirect) or '/dashboard'
   BlCopNet.Request('POST', '/api/fivem/auth/ticket', {
     discordId = tostring(discordId),
     redirect = redirect,
