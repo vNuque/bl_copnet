@@ -4,6 +4,7 @@ lua54 'yes'
 
 name 'bl_copnet'
 author 'bl_james and bl_michael'
+<<<<<<< Updated upstream
 version '1.5.0'
 description 'CopNet Bridge – Duty, GPS, Sync, Radial, Dispatch-UI, Tablet, CAD-Alerts, LiveMap'
 
@@ -13,6 +14,10 @@ files {
   'html/dispatch.html',
   'html/livemap-map.png',
 }
+=======
+description 'CopNet Bridge – Duty, GPS, Personen- & Fahrzeug-Sync'
+version '1.0.0'
+>>>>>>> Stashed changes
 
 shared_scripts {
   '@ox_lib/init.lua',
