@@ -8,7 +8,7 @@ function BlCopNet.FetchAssignedCalls(src, cb)
     if cb then cb(false, { calls = {} }) end
     return
   end
-  BlCopNet.Request('GET', '/api/fivem/dispatch/assigned', { discordId = discordId }, function(ok, data)
+  BlCopNet.GetAssignedDispatch(discordId, function(ok, data)
     if not ok or type(data) ~= 'table' then
       if cb then cb(false, { calls = {} }) end
       return
@@ -32,10 +32,7 @@ function BlCopNet.AckCall(src, callId, action, cb)
     return
   end
   action = tostring(action or 'accept'):lower()
-  BlCopNet.Request('POST', '/api/fivem/dispatch/calls/' .. tostring(callId) .. '/ack', {
-    discordId = discordId,
-    action = action,
-  }, function(ok, data)
+  BlCopNet.AckDispatchCall(callId, discordId, action, function(ok, data)
     if ok and action == 'dismiss' then
       dismissed[src] = dismissed[src] or {}
       dismissed[src][tostring(callId)] = true

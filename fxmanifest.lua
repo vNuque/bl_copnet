@@ -4,9 +4,8 @@ lua54 'yes'
 
 name 'bl_copnet'
 author 'bl_james and bl_michael'
-<<<<<<< Updated upstream
-version '1.5.0'
-description 'CopNet Bridge – Duty, GPS, Sync, Radial, Dispatch-UI, Tablet, CAD-Alerts, LiveMap'
+version '1.6.0'
+description 'CopNet Bridge – Duty, GPS, Sync, stg-radialmenu, Dispatch-UI, Tablet, CAD-Alerts, LiveMap'
 
 ui_page 'html/dispatch.html'
 
@@ -14,10 +13,6 @@ files {
   'html/dispatch.html',
   'html/livemap-map.png',
 }
-=======
-description 'CopNet Bridge – Duty, GPS, Personen- & Fahrzeug-Sync'
-version '1.0.0'
->>>>>>> Stashed changes
 
 shared_scripts {
   '@ox_lib/init.lua',
@@ -33,7 +28,7 @@ client_scripts {
 
 server_scripts {
   '@oxmysql/lib/MySQL.lua',
-  'server/http.lua',
+  'server/api.lua',
   'server/sync.lua',
   'server/duty.lua',
   'server/actions.lua',
@@ -49,4 +44,6 @@ dependencies {
   'es_extended',
   'oxmysql',
   'ox_lib',
+  'BL_CopNet_API',
+  'stg-radialmenu',
 }

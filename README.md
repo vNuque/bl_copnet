@@ -11,17 +11,18 @@ Synchronisiert ESX-Charaktere, Fahrzeuge, Telefonnummern sowie Police-Duty/GPS m
 
 ## Installation
 
-1. Ordner nach `resources/[blackleaf]/bl_copnet` kopieren
-2. In `config.lua`:
-   - `Config.ApiToken` = CopNet-Token
-   - `Config.DutyJobs` an eure Police-Jobs anpassen
-3. `server.cfg` (Reihenfolge):
+1. `BL_CopNet_API` + `bl_copnet` nach `resources/` kopieren
+2. In `server.cfg` (siehe Canvas / analog BL_Staff_API):
    ```
-   ensure ox_lib
-   ensure es_extended
-   ensure oxmysql
+   set BL_CopNet_API_debug "false"
+   set BL_CopNet_API_url "https://copnet.blackleaf.pro"
+   set BL_CopNet_API_token "dein-COPNET_FIVEM_TOKEN"
+   setr bl_copnet_debug "false"
+
+   ensure BL_CopNet_API
    ensure bl_copnet
    ```
+3. In `bl_copnet/config.lua` nur noch Game-Optionen (DutyJobs, Keybinds, …)
 4. CopNet deployen/neu starten (Events `unit_callsign`, `unit_panic`)
 
 ## Was wird gesynct / gesteuert
@@ -32,8 +33,8 @@ Synchronisiert ESX-Charaktere, Fahrzeuge, Telefonnummern sowie Police-Duty/GPS m
 | Fahrzeug-/Waffen-Lookup | `/copnet_plate`, `/copnet_serial` + Exports |
 | Duty clock_in / clock_out | `esx:setJob` wenn Job in `Config.DutyJobs` und `onDuty` |
 | Live-Position | alle `PositionIntervalMs`, nur on-duty |
-| CAD-Status | Radial / F6-Menü / `/copnet_status <status>` |
-| Streifencode | Radial / Menü / `/copnet_callsign L-21` |
+| CAD-Status | stg-radialmenu / `/copnet_status <status>` |
+| Streifencode | stg-radialmenu / `/copnet_callsign L-21` |
 | Panic | Radial / F7 / `/copnet_panic` / Item nutzen → P1-CAD-Einsatz `PANIC` (nur mit Item, siehe `Config.Panic`) |
 | CopNet-Tablet | F9 / `/copnet_tablet` → volle CopNet-UI (Dashboard + Navigation) |
 | CAD-Alerts (Export) | `CreateCadAlert` / `CreateCadAlertAtPlayer` von anderen Resources |
@@ -61,12 +62,12 @@ On-duty (Keybind **F9** / `/copnet_tablet`): NUI-Vollbild mit Login-Ticket → *
 
 ## Radialmenü (on-duty)
 
-- ox_lib-Radial: Eintrag **CopNet**
+- **stg-radialmenu**: Eintrag **CopNet** (nur on-duty via add/remove)
   - Status (AVL / ENR / ONS / BUSY / UNAV)
   - Streifencode setzen
+  - Tablet
   - PANIC
-- **F6** – Kontextmenü (gleiche Aktionen) · Default in `Config.Keybinds.menu`
-- **F7** – Panic-Hotkey · Default in `Config.Keybinds.panic` (Cooldown: `Config.Radial.panicCooldownMs`)
+- **F7** – Panic-Hotkey · Default in `Config.Keybinds.panic`
 
 Keybinds in `config.lua` unter `Config.Keybinds` = **Server-Default**.
 Spieler können sie jederzeit selbst umbelegen: **Esc → Einstellungen → Tastatur → FiveM → „CopNet: …“**.
@@ -86,7 +87,6 @@ Spieler können sie jederzeit selbst umbelegen: **Esc → Einstellungen → Tast
 | `/copnet_status available` | CAD-Status setzen |
 | `/copnet_callsign L-21` | Streifencode |
 | `/copnet_panic` | Panic |
-| `/copnet_menu` | Einsatzmenü |
 | `/copnet_plate ABC123` | Fahrzeugregister-Lookup |
 | `/copnet_serial SN-1` | Waffenregister-Lookup |
 
@@ -156,7 +156,7 @@ CopNet muss die Route `/api/fivem/cad/alerts` deployen.
 
 Beim Start pusht `bl_copnet` Kartenbild + Bounds an CopNet. Offene CAD-Calls mit Koordinaten erscheinen als Marker auf der Karte (Units = Kreise, Calls = Dreiecke).
 
-1. Eigene GTA-Karte nach `html/livemap-map.png` legen (siehe `html/LIVEMAP.md`)
+1. Eigene GTA-Karte nach `html/livemap-map.png` legen
 2. Bounds in `Config.LiveMap.bounds` an die Bild-Kalibrierung anpassen
 3. CopNet + Resource neu starten → Upload automatisch (`uploadOnStart`)
 

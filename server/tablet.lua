@@ -11,17 +11,17 @@ RegisterNetEvent('bl_copnet:requestTablet', function()
   end
 
   local redirect = (Config.Tablet and Config.Tablet.redirect) or '/dashboard'
-  BlCopNet.Request('POST', '/api/fivem/auth/ticket', {
-    discordId = tostring(discordId),
-    redirect = redirect,
-  }, function(ok, data)
+  BlCopNet.CreateAuthTicket(discordId, redirect, function(ok, data)
     if not ok or not data or not data.path then
       local err = (data and (data.error or data.raw)) or 'Ticket fehlgeschlagen'
       TriggerClientEvent('bl_copnet:tabletError', src, tostring(err))
       return
     end
-    local base = tostring(Config.ApiBaseUrl or ''):gsub('/+$', '')
-    local url = base .. tostring(data.path)
-    TriggerClientEvent('bl_copnet:tabletOpen', src, url, 'CopNet')
+    local base = BlCopNet.GetApiBaseUrl()
+    if base == '' then
+      TriggerClientEvent('bl_copnet:tabletError', src, 'BL_CopNet_API_url nicht gesetzt.')
+      return
+    end
+    TriggerClientEvent('bl_copnet:tabletOpen', src, base .. tostring(data.path), 'CopNet')
   end)
 end)

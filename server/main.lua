@@ -49,15 +49,15 @@ RegisterCommand(Config.Commands.dutyTest, function(src, args)
   local discordId = BlCopNet.GetDiscordId(src)
   if mode == 'on' then
     BlCopNet.SendEvent('clock_in', discordId, { manual = true })
-    TriggerClientEvent('bl_copnet:setTracking', src, true)
+    BlCopNet.SetDutyTracking(src, true)
     TriggerClientEvent('esx:showNotification', src, 'CopNet: clock_in gesendet.')
   elseif mode == 'off' then
     BlCopNet.SendEvent('clock_out', discordId, { manual = true })
-    TriggerClientEvent('bl_copnet:setTracking', src, false)
+    BlCopNet.SetDutyTracking(src, false)
     TriggerClientEvent('esx:showNotification', src, 'CopNet: clock_out gesendet.')
   else
     TriggerClientEvent('esx:showNotification', src, 'Usage: /' .. Config.Commands.dutyTest .. ' on|off')
   end
 end, true)
 
-print('[bl_copnet] gestartet → ' .. tostring(Config.ApiBaseUrl))
+print('[bl_copnet] gestartet → ' .. tostring(BlCopNet.GetApiBaseUrl()))

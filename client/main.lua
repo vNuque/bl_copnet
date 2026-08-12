@@ -1,32 +1,43 @@
 local tracking = false
+local lastLocalDuty = nil
 
-RegisterNetEvent('bl_copnet:setTracking', function(enabled)
-  tracking = enabled and true or false
-  TriggerEvent('bl_copnet:refreshRadial')
-  TriggerEvent('bl_copnet:dutyState', tracking)
-end)
-
-CreateThread(function()
-  local interval = tonumber(Config.PositionIntervalMs) or 15000
-  if interval < 5000 then interval = 5000 end
-
-  while true do
-    Wait(interval)
-    if tracking then
-      local ped = PlayerPedId()
-      if ped and ped ~= 0 then
-        local coords = GetEntityCoords(ped)
-        TriggerServerEvent('bl_copnet:position', coords.x, coords.y)
-      end
+local function readLocalOnDuty()
+  local esxDuty = nil
+  local ok, ESX = pcall(function()
+    return exports['es_extended']:getSharedObject()
+  end)
+  if ok and ESX and ESX.PlayerData and ESX.PlayerData.job then
+    local job = ESX.PlayerData.job
+    local flag = job.onDuty
+    if flag == nil then flag = job.onduty end
+    if flag ~= nil then
+      esxDuty = flag == true or flag == 1
     end
   end
-end)
 
-local function currentCoords()
-  local ped = PlayerPedId()
-  if not ped or ped == 0 then return nil end
-  local c = GetEntityCoords(ped)
-  return c.x + 0.0, c.y + 0.0, c.z + 0.0
+  -- sky_jobs_base: nur true ist autoritativ; false darf ESX/LB Phone nicht blockieren
+  if GetResourceState('sky_jobs_base') == 'started' then
+    local skyOk, result = pcall(function()
+      return exports['sky_jobs_base']:isOnDuty()
+    end)
+    if skyOk and result == true then
+      return true
+    end
+  end
+
+  -- State-Bag: nur true oder wenn ESX kein Flag hat
+  local state = LocalPlayer and LocalPlayer.state
+  if state then
+    local flag = state.onDuty
+    if flag == nil then flag = state.onduty end
+    if flag ~= nil then
+      local stateDuty = flag == true or flag == 1
+      if stateDuty then return true end
+      if esxDuty == nil then return false end
+    end
+  end
+
+  return esxDuty
 end
 
 local function notify(msg)
@@ -133,148 +144,245 @@ end
 RegisterNetEvent('bl_copnet:requestPanic', sendPanic)
 RegisterNetEvent('bl_copnet:usePanicItem', sendPanic)
 
+local function openCallsignDialog()
+  if not tracking then
+    notify('Streifencode nur on-duty.')
+    return
+  end
+  CreateThread(function()
+    Wait(250)
+    if not tracking then return end
+    local input = lib.inputDialog('Streifencode', {
+      { type = 'input', label = 'Code', placeholder = 'L-21', required = true, max = 32 },
+    })
+    if not input or not input[1] then return end
+    TriggerServerEvent('bl_copnet:setCallsign', input[1])
+  end)
+end
 
-local function openStatusMenu()
-  local options = {}
+local function openTabletFromRadial()
+  if not tracking then
+    notify('Tablet nur on-duty.')
+    return
+  end
+  CreateThread(function()
+    Wait(200)
+    if BlCopNetOpenTablet then BlCopNetOpenTablet() end
+  end)
+end
+
+AddEventHandler('bl_copnet:openCallsignDialog', openCallsignDialog)
+RegisterNetEvent('bl_copnet:openCallsignDialog', openCallsignDialog)
+AddEventHandler('bl_copnet:radialTablet', openTabletFromRadial)
+
+local RADIAL_IDS = {
+  'copnet',
+  'bl_copnet_root',
+  'bl_copnet_status',
+  'bl_copnet_callsign',
+  'bl_copnet_tablet',
+  'bl_copnet_panic',
+  'copnet_status',
+  'copnet_status_available',
+  'copnet_status_enroute',
+  'copnet_status_on_scene',
+  'copnet_status_busy',
+  'copnet_status_unavailable',
+  'bl_copnet_status_available',
+  'bl_copnet_status_enroute',
+  'bl_copnet_status_on_scene',
+  'bl_copnet_status_busy',
+  'bl_copnet_status_unavailable',
+}
+
+local function buildStatusRadialSubmenu()
+  local items = {}
   for _, entry in ipairs(Config.Statuses or {}) do
-    options[#options + 1] = {
-      title = entry.label,
-      icon = entry.icon or 'circle',
-      onSelect = function()
-        TriggerServerEvent('bl_copnet:setStatus', entry.value)
+    local value = entry.value
+    items[#items + 1] = {
+      id = 'bl_copnet_status_' .. tostring(value),
+      label = entry.label,
+      description = 'CAD-Status setzen',
+      icon = 'fa-solid fa-' .. tostring(entry.icon or 'circle'),
+      action = function()
+        TriggerServerEvent('bl_copnet:setStatus', value)
       end,
     }
   end
-  lib.registerContext({
-    id = 'bl_copnet_status',
-    title = 'CAD-Status',
-    menu = 'bl_copnet_main',
-    options = options,
-  })
-  lib.showContext('bl_copnet_status')
+  return items
 end
 
-local function openCallsignDialog()
-  local input = lib.inputDialog('Streifencode', {
-    { type = 'input', label = 'Code', placeholder = 'L-21', required = true, max = 32 },
-  })
-  if not input or not input[1] then return end
-  TriggerServerEvent('bl_copnet:setCallsign', input[1])
-end
+local function syncStgRadial()
+  if GetResourceState('stg-radialmenu') ~= 'started' then return end
 
-local function openMainMenu()
-  if not tracking then
-    notify('Einsatzmenü nur on-duty.')
-    return
-  end
-  lib.registerContext({
-    id = 'bl_copnet_main',
-    title = 'CopNet Einsatz',
-    options = {
-      {
-        title = 'CAD-Status',
-        description = 'AVL / ENR / ONS / BUSY / UNAV',
-        icon = 'signal',
-        onSelect = openStatusMenu,
-      },
-      {
-        title = 'Streifencode setzen',
-        description = 'Anzeige auf Live-Map / Dispatch',
-        icon = 'hashtag',
-        onSelect = openCallsignDialog,
-      },
-      {
-        title = 'CopNet-Tablet',
-        description = 'Officer-CAD / volles CopNet',
-        icon = 'tablet-screen-button',
-        onSelect = function()
-          if BlCopNetOpenTablet then BlCopNetOpenTablet() end
-        end,
-      },
-      {
-        title = 'PANIC',
-        description = 'P1-Alarm an Dispatch',
-        icon = 'triangle-exclamation',
-        onSelect = sendPanic,
-      },
-    },
-  })
-  lib.showContext('bl_copnet_main')
-end
-
-local function registerRadial()
-  if Config.Radial and Config.Radial.enabled == false then
-    lib.removeRadialItem('bl_copnet_root')
-    return
+  for _, id in ipairs(RADIAL_IDS) do
+    pcall(function()
+      exports['stg-radialmenu']:removeRadialItem(id)
+    end)
   end
 
-  lib.removeRadialItem('bl_copnet_root')
   if not tracking then return end
 
-  local statusItems = {}
-  for _, entry in ipairs(Config.Statuses or {}) do
-    statusItems[#statusItems + 1] = {
-      label = entry.label,
-      icon = entry.icon or 'circle',
-      onSelect = function()
-        TriggerServerEvent('bl_copnet:setStatus', entry.value)
-      end,
-    }
-  end
+  local submenuOk = pcall(function()
+    exports['stg-radialmenu']:addRadialItem({
+      id = 'copnet',
+      label = 'CopNet',
+      description = 'CAD-Status, Streifencode, Tablet und Panic',
+      icon = 'fa-solid fa-shield-halved',
+      submenu = {
+        {
+          id = 'bl_copnet_status',
+          label = 'CAD-Status',
+          description = 'AVL / ENR / ONS / BUSY / UNAV',
+          icon = 'fa-solid fa-signal',
+          submenu = buildStatusRadialSubmenu(),
+        },
+        {
+          id = 'bl_copnet_callsign',
+          label = 'Streifencode',
+          description = 'Anzeige auf Live-Map / Dispatch',
+          icon = 'fa-solid fa-hashtag',
+          action = function()
+            TriggerEvent('bl_copnet:openCallsignDialog')
+          end,
+        },
+        {
+          id = 'bl_copnet_tablet',
+          label = 'CopNet-Tablet',
+          description = 'Officer-CAD / volles CopNet',
+          icon = 'fa-solid fa-tablet-screen-button',
+          action = function()
+            TriggerEvent('bl_copnet:radialTablet')
+          end,
+        },
+        {
+          id = 'bl_copnet_panic',
+          label = 'PANIC',
+          description = 'P1-Alarm an Dispatch',
+          icon = 'fa-solid fa-triangle-exclamation',
+          action = function()
+            TriggerEvent('bl_copnet:requestPanic')
+          end,
+        },
+      },
+    })
+  end)
 
-  lib.registerRadial({
-    id = 'bl_copnet_status_radial',
-    items = statusItems,
-  })
+  if submenuOk then return end
 
-  lib.registerRadial({
-    id = 'bl_copnet_main_radial',
-    items = {
-      {
-        label = 'Status',
-        icon = 'signal',
-        menu = 'bl_copnet_status_radial',
-      },
-      {
-        label = 'Streifencode',
-        icon = 'hashtag',
-        onSelect = openCallsignDialog,
-      },
-      {
-        label = 'Tablet',
-        icon = 'tablet-screen-button',
-        onSelect = function()
-          if BlCopNetOpenTablet then BlCopNetOpenTablet() end
-        end,
-      },
-      {
-        label = 'PANIC',
-        icon = 'triangle-exclamation',
-        onSelect = sendPanic,
-      },
-    },
-  })
-
-  lib.addRadialItem({
-    id = 'bl_copnet_root',
-    label = 'CopNet',
-    icon = 'shield-halved',
-    menu = 'bl_copnet_main_radial',
-  })
+  -- Fallback ohne verschachteltes Submenü: Status-Einträge flach + Rest
+  pcall(function()
+    exports['stg-radialmenu']:addRadialItem({
+      id = 'bl_copnet_root',
+      label = 'CopNet',
+      description = 'CAD-Status, Streifencode, Tablet und Panic',
+      icon = 'fa-solid fa-shield-halved',
+      submenu = (function()
+        local items = buildStatusRadialSubmenu()
+        items[#items + 1] = {
+          id = 'bl_copnet_callsign',
+          label = 'Streifencode',
+          icon = 'fa-solid fa-hashtag',
+          action = function()
+            TriggerEvent('bl_copnet:openCallsignDialog')
+          end,
+        }
+        items[#items + 1] = {
+          id = 'bl_copnet_tablet',
+          label = 'CopNet-Tablet',
+          icon = 'fa-solid fa-tablet-screen-button',
+          action = function()
+            TriggerEvent('bl_copnet:radialTablet')
+          end,
+        }
+        items[#items + 1] = {
+          id = 'bl_copnet_panic',
+          label = 'PANIC',
+          icon = 'fa-solid fa-triangle-exclamation',
+          action = function()
+            TriggerEvent('bl_copnet:requestPanic')
+          end,
+        }
+        return items
+      end)(),
+    })
+  end)
 end
 
-AddEventHandler('bl_copnet:refreshRadial', registerRadial)
+RegisterNetEvent('bl_copnet:setTracking', function(enabled)
+  tracking = enabled and true or false
+  TriggerEvent('bl_copnet:dutyState', tracking)
+  syncStgRadial()
+end)
 
 CreateThread(function()
-  Wait(500)
-  registerRadial()
+  while true do
+    Wait(1000)
+    local duty = readLocalOnDuty()
+    if type(duty) == 'boolean' and (duty ~= lastLocalDuty or duty ~= tracking) then
+      lastLocalDuty = duty
+      TriggerServerEvent('bl_copnet:clientDutySync', duty)
+    end
+  end
+end)
+
+RegisterNetEvent('esx:setJob', function(job)
+  -- LB Phone / ESX schickt Job-Update inkl. onDuty oft nur clientseitig
+  if type(job) == 'table' then
+    local flag = job.onDuty
+    if flag == nil then flag = job.onduty end
+    if flag ~= nil then
+      local duty = flag == true or flag == 1
+      lastLocalDuty = duty
+      TriggerServerEvent('bl_copnet:clientDutySync', duty)
+      return
+    end
+  end
+  TriggerServerEvent('bl_copnet:refreshDuty')
+end)
+
+CreateThread(function()
+  local interval = tonumber(Config.PositionIntervalMs) or 15000
+  if interval < 5000 then interval = 5000 end
+
+  while true do
+    Wait(interval)
+    if tracking then
+      local ped = PlayerPedId()
+      if ped and ped ~= 0 then
+        local coords = GetEntityCoords(ped)
+        TriggerServerEvent('bl_copnet:position', coords.x, coords.y)
+      end
+    end
+  end
+end)
+
+local function bootRadialAndDuty()
+  Wait(800)
+  syncStgRadial()
+  TriggerServerEvent('bl_copnet:refreshDuty')
+  local duty = readLocalOnDuty()
+  if type(duty) == 'boolean' then
+    lastLocalDuty = duty
+    TriggerServerEvent('bl_copnet:clientDutySync', duty)
+  end
+end
+
+CreateThread(function()
+  bootRadialAndDuty()
+end)
+
+AddEventHandler('onClientResourceStart', function(resourceName)
+  if resourceName == GetCurrentResourceName() or resourceName == 'stg-radialmenu' then
+    CreateThread(bootRadialAndDuty)
+  end
+end)
+
+exports('IsOnDuty', function()
+  return tracking == true
 end)
 
 local keybinds = Config.Keybinds or {}
-
-BlCopNetKeybinds.Register(keybinds.menu, Config.Commands.menu, function()
-  openMainMenu()
-end)
 
 BlCopNetKeybinds.Register(keybinds.panic, 'bl_copnet_panic', function()
   sendPanic()
@@ -283,4 +391,3 @@ end, { button = true })
 BlCopNetKeybinds.Register(keybinds.tablet, Config.Commands.tablet, function()
   if BlCopNetOpenTablet then BlCopNetOpenTablet() end
 end)
-

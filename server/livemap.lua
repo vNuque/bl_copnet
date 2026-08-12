@@ -72,7 +72,7 @@ function BlCopNet.UploadLiveMap(cb)
     BlCopNet.Warn('LiveMap: Datei %s nicht gefunden – nur Bounds werden gesendet', fileName)
   end
 
-  BlCopNet.Request('POST', '/api/fivem/livemap/map', body, function(ok, data)
+  BlCopNet.UploadLivemapApi(body, function(ok, data)
     if ok then
       BlCopNet.Debug('LiveMap: CopNet-Karte aktualisiert (image=%s)', tostring(data and data.map and data.map.hasImage))
     else

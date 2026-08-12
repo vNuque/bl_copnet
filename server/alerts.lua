@@ -57,7 +57,7 @@ function BlCopNet.CreateCadAlert(opts, cb)
     assignedOfficerIds = type(opts.assignedOfficerIds) == 'table' and opts.assignedOfficerIds or nil,
   }
 
-  BlCopNet.Request('POST', '/api/fivem/cad/alerts', body, function(ok, data)
+  BlCopNet.SendCadAlert(body, function(ok, data)
     if ok then
       BlCopNet.Debug('CAD-Alert angelegt: %s (%s)', title, tostring(data and data.call and data.call.id or '?'))
     else
