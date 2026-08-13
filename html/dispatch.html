@@ -12,7 +12,19 @@
       --chip: #3a3f4b;
       --accent: #60a5fa;
       --ok: #34d399;
-      --frame: rgba(15, 17, 23, 0.97);
+
+      /* Tablet-Gehaeuse: gleiche Graphit-Palette wie CopNet, damit
+         Bildschirm und Rahmen nicht aus zwei Welten stammen. */
+      --shell: #15181d;
+      --shell-edge: #0a0c0f;
+      --screen: #0e1013;
+      --screen-bar: #14171c;
+      --line: rgba(255, 255, 255, 0.07);
+      --line-strong: rgba(255, 255, 255, 0.13);
+      --ink: #e6e8ec;
+      --ink-2: #a8aeb8;
+      --ink-3: #7d848f;
+      --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -100,67 +112,140 @@
       position: fixed;
       inset: 0;
       z-index: 50;
-      background: rgba(0, 0, 0, 0.55);
-      align-items: stretch;
-      justify-content: stretch;
-      padding: 3vh 3vw;
+      background: rgba(4, 5, 7, 0.72);
+      align-items: center;
+      justify-content: center;
+      padding: 2vh 2vw;
     }
     #tablet.open { display: flex; }
-    .tablet-frame {
-      flex: 1;
+
+    /* Feste Geraeteproportion: das Tablet soll wie ein Gegenstand in der
+       Hand wirken und nicht wie ein Vollbildfenster mit Rand. */
+    .tablet-device {
+      position: relative;
+      width: min(96vw, calc(94vh * 16 / 10));
+      aspect-ratio: 16 / 10;
+      padding: 18px 18px 26px;
+      border-radius: 26px;
+      background: var(--shell);
+      box-shadow:
+        inset 0 1px 0 0 rgba(255,255,255,.06),
+        inset 0 0 0 1px rgba(0,0,0,.5),
+        0 0 0 1px var(--shell-edge),
+        0 30px 70px rgba(0,0,0,.65);
+    }
+    /* Frontkamera im oberen Gehaeusesteg. */
+    .tablet-camera {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #05070a;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.08);
+    }
+    /* Seitentasten, damit die Silhouette nicht nur ein Rechteck ist. */
+    .tablet-key {
+      position: absolute;
+      right: -3px;
+      width: 3px;
+      border-radius: 0 2px 2px 0;
+      background: #22262d;
+    }
+    .tablet-key-power { top: 14%; height: 44px; }
+    .tablet-key-volume { top: calc(14% + 60px); height: 76px; }
+    .tablet-brand {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .3em;
+      color: rgba(255,255,255,.15);
+    }
+
+    .tablet-screen {
+      height: 100%;
       display: flex;
       flex-direction: column;
-      background: var(--frame);
-      border-radius: 14px;
+      border-radius: 7px;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,.08);
-      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      background: var(--screen);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.85);
     }
     .tablet-bar {
       flex: 0 0 auto;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      background: rgba(255,255,255,.04);
-      border-bottom: 1px solid rgba(255,255,255,.06);
+      gap: 10px;
+      padding: 6px 12px;
+      background: var(--screen-bar);
+      border-bottom: 1px solid var(--line);
     }
-    .tablet-bar strong { letter-spacing: .04em; font-size: 13px; }
+    .tablet-bar strong {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .16em;
+      color: var(--ink-2);
+    }
     .tablet-bar .spacer { flex: 1; }
     .tablet-bar button {
-      background: #374151;
-      color: #fff;
-      border: 0;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-weight: 600;
+      background: transparent;
+      color: var(--ink-2);
+      border: 1px solid var(--line-strong);
+      border-radius: 3px;
+      padding: 3px 9px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .1em;
       cursor: pointer;
     }
-    .tablet-bar button:hover { background: #4b5563; }
+    .tablet-bar button:hover { background: rgba(255,255,255,.06); color: var(--ink); }
     .tablet-status {
-      color: var(--muted);
-      font-size: 12px;
+      color: var(--ink-3);
+      font-size: 11px;
+    }
+    .tablet-clock {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-2);
+      font-variant-numeric: tabular-nums;
     }
     #tablet-frame {
       flex: 1;
+      display: block;
       width: 100%;
       border: 0;
-      background: #0b0f17;
+      background: var(--screen);
     }
+    /* CEF zeichnet um das fokussierte iframe sonst einen blauen Ring. */
+    #tablet-frame:focus,
+    #tablet-frame:focus-visible { outline: 0; }
   </style>
 </head>
 <body>
   <div id="stack"></div>
 
   <div id="tablet" aria-hidden="true">
-    <div class="tablet-frame">
-      <div class="tablet-bar">
-        <strong>BLACKLEAF COPNET</strong>
-        <span class="tablet-status" id="tablet-status">Laden…</span>
-        <span class="spacer"></span>
-        <button type="button" id="tablet-close">Schließen (ESC)</button>
+    <div class="tablet-device">
+      <span class="tablet-camera" aria-hidden="true"></span>
+      <span class="tablet-key tablet-key-power" aria-hidden="true"></span>
+      <span class="tablet-key tablet-key-volume" aria-hidden="true"></span>
+      <div class="tablet-screen">
+        <div class="tablet-bar">
+          <strong>BLACKLEAF COPNET</strong>
+          <span class="tablet-status" id="tablet-status">Laden…</span>
+          <span class="spacer"></span>
+          <span class="tablet-clock" id="tablet-clock"></span>
+          <button type="button" id="tablet-close">Schliessen &middot; ESC</button>
+        </div>
+        <iframe id="tablet-frame" title="CopNet" allow="clipboard-read; clipboard-write"></iframe>
       </div>
-      <iframe id="tablet-frame" title="CopNet" allow="clipboard-read; clipboard-write"></iframe>
+      <span class="tablet-brand" aria-hidden="true">BLACKLEAF</span>
     </div>
   </div>
 
@@ -169,6 +254,8 @@
     const tablet = document.getElementById('tablet');
     const tabletFrame = document.getElementById('tablet-frame');
     const tabletStatus = document.getElementById('tablet-status');
+    const tabletClock = document.getElementById('tablet-clock');
+    let tabletClockTimer = null;
 
     function esc(s) {
       return String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -242,11 +329,20 @@
       }).join('');
     }
 
+    function tickClock() {
+      tabletClock.textContent = new Date().toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+
     function closeTablet() {
       tablet.classList.remove('open');
       tablet.setAttribute('aria-hidden', 'true');
       tabletFrame.removeAttribute('src');
       tabletStatus.textContent = '';
+      clearInterval(tabletClockTimer);
+      tabletClockTimer = null;
       fetch(`https://${GetParentResourceName()}/tabletClose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -259,6 +355,9 @@
       tabletFrame.src = url || 'about:blank';
       tablet.classList.add('open');
       tablet.setAttribute('aria-hidden', 'false');
+      tickClock();
+      clearInterval(tabletClockTimer);
+      tabletClockTimer = setInterval(tickClock, 15000);
     }
 
     document.getElementById('tablet-close').addEventListener('click', closeTablet);
