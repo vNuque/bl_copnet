@@ -4,6 +4,13 @@ RegisterNetEvent('bl_copnet:requestTablet', function()
     TriggerClientEvent('bl_copnet:tabletError', src, 'CopNet-Tablet ist deaktiviert.')
     return
   end
+
+  -- Nur on-duty Officers (DutyJobs + Tracking)
+  if not BlCopNet.IsPlayerTrackedOnDuty or not BlCopNet.IsPlayerTrackedOnDuty(src) then
+    TriggerClientEvent('bl_copnet:tabletError', src, 'CopNet-Tablet nur im Dienst verfügbar.')
+    return
+  end
+
   local discordId = BlCopNet.GetDiscordId(src)
   if not discordId then
     TriggerClientEvent('bl_copnet:tabletError', src, 'Keine Discord-ID verknüpft.')
@@ -22,6 +29,7 @@ RegisterNetEvent('bl_copnet:requestTablet', function()
       TriggerClientEvent('bl_copnet:tabletError', src, 'BL_CopNet_API_url nicht gesetzt.')
       return
     end
-    TriggerClientEvent('bl_copnet:tabletOpen', src, base .. tostring(data.path), 'CopNet')
+    local url = base .. tostring(data.path)
+    TriggerClientEvent('bl_copnet:tabletOpen', src, url, 'CopNet')
   end)
 end)

@@ -315,6 +315,7 @@ RegisterNetEvent('bl_copnet:setTracking', function(enabled)
   syncStgRadial()
 end)
 
+-- Client meldet nur einen Duty-Hint; Server entscheidet (Flag-Vorrang + Rate-Limit).
 CreateThread(function()
   while true do
     Wait(1000)

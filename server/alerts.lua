@@ -1,25 +1,44 @@
 BlCopNet = BlCopNet or {}
 
+local lastAlertAt = {} -- [resourceName] = GetGameTimer()
+
 --- CAD-Alert an CopNet schicken (Hausraub, Schüsse, …).
---- Andere Resources:
----   exports['bl_copnet']:CreateCadAlert({
----     title = 'Schüsse gemeldet',
----     code = 'SHOTS',
----     kind = 'shots_fired',
----     priority = 1,
----     x = 100.0, y = 200.0, z = 30.0,
----     street = 'Forum Drive',
----     postal = '123',
----     agencyId = 'lspd', -- optional
----     notes = 'Mehrere Schüsse gehört',
----     source = 'my_script',
----   }, function(ok, data) end)
+--- Andere Resources: exports['bl_copnet']:CreateCadAlert({ ... }, cb)
 function BlCopNet.CreateCadAlert(opts, cb)
   opts = type(opts) == 'table' and opts or {}
   if Config.CadAlerts and Config.CadAlerts.enabled == false then
     if cb then cb(false, { error = 'alerts_disabled' }) end
     return
   end
+
+  local cfg = Config.CadAlerts or {}
+  local caller = tostring(GetInvokingResource() or opts.source or opts.script or ''):gsub('%s+', '')
+  if caller == '' then caller = 'unknown' end
+
+  local allow = cfg.allowedResources
+  if type(allow) == 'table' and #allow > 0 then
+    local okCaller = false
+    for _, name in ipairs(allow) do
+      if tostring(name) == caller then
+        okCaller = true
+        break
+      end
+    end
+    if not okCaller then
+      BlCopNet.Warn('CreateCadAlert: Resource "%s" nicht in allowedResources', caller)
+      if cb then cb(false, { error = 'resource_not_allowed', resource = caller }) end
+      return
+    end
+  end
+
+  local minInterval = tonumber(cfg.minIntervalMs) or 5000
+  local now = GetGameTimer()
+  local prev = lastAlertAt[caller] or 0
+  if minInterval > 0 and (now - prev) < minInterval then
+    if cb then cb(false, { error = 'rate_limited', resource = caller }) end
+    return
+  end
+  lastAlertAt[caller] = now
 
   local title = tostring(opts.title or ''):gsub('^%s+', ''):gsub('%s+$', '')
   if title == '' then
@@ -28,7 +47,6 @@ function BlCopNet.CreateCadAlert(opts, cb)
     return
   end
 
-  local cfg = Config.CadAlerts or {}
   local agencyId = tostring(opts.agencyId or opts.agency_id or cfg.defaultAgencyId or ''):gsub('^%s+', ''):gsub('%s+$', '')
   local priority = tonumber(opts.priority) or tonumber(cfg.defaultPriority) or 2
 
@@ -52,7 +70,7 @@ function BlCopNet.CreateCadAlert(opts, cb)
     plate = opts.plate,
     color = opts.color,
     notes = opts.notes,
-    source = opts.source or opts.script or GetInvokingResource() or 'fivem',
+    source = opts.source or opts.script or caller,
     details = type(opts.details) == 'table' and opts.details or nil,
     assignedOfficerIds = type(opts.assignedOfficerIds) == 'table' and opts.assignedOfficerIds or nil,
   }
@@ -67,7 +85,6 @@ function BlCopNet.CreateCadAlert(opts, cb)
   end)
 end
 
---- Convenience: Koordinaten aus Player-Server-ID übernehmen
 function BlCopNet.CreateCadAlertAtPlayer(src, opts, cb)
   opts = type(opts) == 'table' and opts or {}
   local ped = GetPlayerPed(src)

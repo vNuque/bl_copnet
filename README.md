@@ -1,29 +1,40 @@
 # bl_copnet – FiveM ↔ CopNet Bridge
 
-Synchronisiert ESX-Charaktere, Fahrzeuge, Telefonnummern sowie Police-Duty/GPS mit [CopNet](https://copnet.blackleaf.pro/) und bietet ein **Radialmenü** für CAD-Status, Streifencode und Panic.
+Game-Bridge (Duty, GPS, Radial, Tablet, CAD-Alerts, LiveMap) für [CopNet](https://copnet.blackleaf.pro/).
+
+**Kommunikation zur Website läuft ausschließlich über [`BL_CopNet_API`](../BL_CopNeT_API)** – `bl_copnet` enthält keinen Token und spricht CopNet nicht direkt an.
+
+```
+bl_copnet ──exports──► BL_CopNet_API ──HTTP+Token──► CopNet /api/fivem/*
+```
 
 ## Voraussetzungen
 
 - ESX Legacy + oxmysql + **ox_lib**
+- Resource **`BL_CopNet_API`** (vorher starten)
 - `owned_vehicles`, `users` (mit Identity-Spalten), optional `phone_phones` / `phone_last_phone` (lb-phone)
-- In CopNet: `COPNET_FIVEM_TOKEN` gesetzt
+- In CopNet: `COPNET_FIVEM_TOKEN` = gleicher Wert wie `BL_CopNet_API_token`
 - Officer in CopNet mit **gleicher Discord-ID** wie im FiveM-Client (für Duty/Live-Map/Radial)
 
 ## Installation
 
-1. `BL_CopNet_API` + `bl_copnet` nach `resources/` kopieren
-2. In `server.cfg` (siehe Canvas / analog BL_Staff_API):
+1. `BL_CopNet_API` + `bl_copnet` nach `resources/[blackleaf]/` kopieren
+2. `Config.DutyJobs` in `bl_copnet/config.lua` anpassen
+3. `server.cfg`:
    ```
    set BL_CopNet_API_debug "false"
    set BL_CopNet_API_url "https://copnet.blackleaf.pro"
-   set BL_CopNet_API_token "dein-COPNET_FIVEM_TOKEN"
-   setr bl_copnet_debug "false"
+   set BL_CopNet_API_token "dein-token"   # = COPNET_FIVEM_TOKEN
 
+   ensure ox_lib
+   ensure es_extended
+   ensure oxmysql
    ensure BL_CopNet_API
    ensure bl_copnet
    ```
-3. In `bl_copnet/config.lua` nur noch Game-Optionen (DutyJobs, Keybinds, …)
-4. CopNet deployen/neu starten (Events `unit_callsign`, `unit_panic`)
+4. CopNet deployen/neu starten (`COPNET_FIVEM_TOKEN`, optional `COPNET_FIVEM_ALLOWED_IPS`)
+
+Token **nur** in `BL_CopNet_API` / server.cfg – nicht in `bl_copnet`.
 
 ## Was wird gesynct / gesteuert
 
@@ -31,14 +42,14 @@ Synchronisiert ESX-Charaktere, Fahrzeuge, Telefonnummern sowie Police-Duty/GPS m
 |---|---|
 | Person + Fahrzeuge + Telefon | Login, periodischer Resync, `/copnet_syncme`, `/copnet_syncall` |
 | Fahrzeug-/Waffen-Lookup | `/copnet_plate`, `/copnet_serial` + Exports |
-| Duty clock_in / clock_out | `esx:setJob` wenn Job in `Config.DutyJobs` und `onDuty` |
-| Live-Position | alle `PositionIntervalMs`, nur on-duty |
-| CAD-Status | stg-radialmenu / `/copnet_status <status>` |
-| Streifencode | stg-radialmenu / `/copnet_callsign L-21` |
-| Panic | Radial / F7 / `/copnet_panic` / Item nutzen → P1-CAD-Einsatz `PANIC` (nur mit Item, siehe `Config.Panic`) |
+| Duty clock_in / clock_out | `esx:setJob` (Server-Job/`onDuty`); Client-Hint nur wenn Server kein Flag hat + Rate-Limit |
+| Live-Position | alle `PositionIntervalMs`, nur on-duty; Server-Coords + Anti-Teleport (`Config.PositionAntiTeleport`) |
+| CAD-Status | Radial / F6-Menü / `/copnet_status <status>` (Cooldown `Radial.statusCooldownMs`) |
+| Streifencode | Radial / Menü / `/copnet_callsign L-21` (Cooldown `Radial.callsignCooldownMs`) |
+| Panic | Radial / F7 / `/copnet_panic` / Item nutzen → P1-CAD-Einsatz `PANIC` (Cooldown + Item); **Proximity-Sound** in `Config.Panic.proximitySound.radius` für alle in der Nähe (auch Crime) |
 | CopNet-Tablet | F9 / `/copnet_tablet` → volle CopNet-UI (Dashboard + Navigation) |
 | CAD-Alerts (Export) | `CreateCadAlert` / `CreateCadAlertAtPlayer` von anderen Resources |
-| Live-Karte | Start-Upload `html/livemap-map.png` + Bounds → CAD-Hintergrund; offene Calls als Marker |
+| Live-Karte | Greift echte Map vom Gameserver → CopNet; offene Calls als Marker |
 
 ## Dispatch-UI (zugeteilte Einsätze)
 
@@ -62,12 +73,12 @@ On-duty (Keybind **F9** / `/copnet_tablet`): NUI-Vollbild mit Login-Ticket → *
 
 ## Radialmenü (on-duty)
 
-- **stg-radialmenu**: Eintrag **CopNet** (nur on-duty via add/remove)
+- ox_lib-Radial: Eintrag **CopNet**
   - Status (AVL / ENR / ONS / BUSY / UNAV)
   - Streifencode setzen
-  - Tablet
   - PANIC
-- **F7** – Panic-Hotkey · Default in `Config.Keybinds.panic`
+- **F6** – Kontextmenü (gleiche Aktionen) · Default in `Config.Keybinds.menu`
+- **F7** – Panic-Hotkey · Default in `Config.Keybinds.panic` (Cooldown: `Config.Radial.panicCooldownMs`)
 
 Keybinds in `config.lua` unter `Config.Keybinds` = **Server-Default**.
 Spieler können sie jederzeit selbst umbelegen: **Esc → Einstellungen → Tastatur → FiveM → „CopNet: …“**.
@@ -87,6 +98,7 @@ Spieler können sie jederzeit selbst umbelegen: **Esc → Einstellungen → Tast
 | `/copnet_status available` | CAD-Status setzen |
 | `/copnet_callsign L-21` | Streifencode |
 | `/copnet_panic` | Panic |
+| `/copnet_menu` | Einsatzmenü |
 | `/copnet_plate ABC123` | Fahrzeugregister-Lookup |
 | `/copnet_serial SN-1` | Waffenregister-Lookup |
 
@@ -154,12 +166,17 @@ CopNet muss die Route `/api/fivem/cad/alerts` deployen.
 
 ## Live-Karte (Dispatch)
 
-Beim Start pusht `bl_copnet` Kartenbild + Bounds an CopNet. Offene CAD-Calls mit Koordinaten erscheinen als Marker auf der Karte (Units = Kreise, Calls = Dreiecke).
+Beim Start greift `bl_copnet` die **echte Karte vom FiveM-Server** und lädt sie nach CopNet. Offene CAD-Calls mit Koordinaten erscheinen als Marker.
 
-1. Eigene GTA-Karte nach `html/livemap-map.png` legen
-2. Bounds in `Config.LiveMap.bounds` an die Bild-Kalibrierung anpassen
-3. CopNet + Resource neu starten → Upload automatisch (`uploadOnStart`)
+Quellen in `Config.LiveMap` (eine reicht):
+
+| Option | Beispiel |
+|---|---|
+| `sourceResource` + `imageFile` | Resource auf dem Gameserver mit PNG/JPG |
+| `imagePath` | Absoluter Server-Pfad zur Map-Datei |
+| `sourceUrl` | Script lädt von URL und pusht nach CopNet |
+| `publicBaseUrl` + `mode='fetch'` | CopNet holt `http://IP:30120/bl_copnet/livemap-map` |
+
+Details: [`html/LIVEMAP.md`](html/LIVEMAP.md)
 
 Manuell: `exports['bl_copnet']:UploadLiveMap(cb)`
-
-API: `POST /api/fivem/livemap/map` mit `imageBase64` + `bounds`.

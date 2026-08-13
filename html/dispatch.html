@@ -235,7 +235,7 @@
             </div>
             <div class="rows">${lines}</div>
             <div class="foot">
-              <span class="hint">${c.focused ? 'Annehmen-Taste' : ''}</span>
+              <span class="hint">${c.focused ? (c.claimable ? 'Annehmen = zuteilen' : 'Annehmen-Taste') : ''}</span>
               <span class="ago">${icon('clock')}${esc(timeAgo(c.createdAt))}</span>
             </div>
           </article>`;

@@ -4,14 +4,13 @@ lua54 'yes'
 
 name 'bl_copnet'
 author 'bl_james and bl_michael'
-version '1.6.0'
-description 'CopNet Bridge – Duty, GPS, Sync, stg-radialmenu, Dispatch-UI, Tablet, CAD-Alerts, LiveMap'
+version '1.5.0'
+description 'CopNet Bridge – Duty, GPS, Sync, Radial, Dispatch-UI, Tablet, CAD-Alerts, LiveMap'
 
 ui_page 'html/dispatch.html'
 
 files {
   'html/dispatch.html',
-  'html/livemap-map.png',
 }
 
 shared_scripts {
@@ -22,6 +21,7 @@ shared_scripts {
 client_scripts {
   'client/keybinds.lua',
   'client/main.lua',
+  'client/panic_sound.lua',
   'client/dispatch.lua',
   'client/tablet.lua',
 }
@@ -45,5 +45,4 @@ dependencies {
   'oxmysql',
   'ox_lib',
   'BL_CopNet_API',
-  'stg-radialmenu',
 }

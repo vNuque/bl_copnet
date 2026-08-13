@@ -60,4 +60,4 @@ RegisterCommand(Config.Commands.dutyTest, function(src, args)
   end
 end, true)
 
-print('[bl_copnet] gestartet → ' .. tostring(BlCopNet.GetApiBaseUrl()))
+print('[bl_copnet] gestartet (Website nur via BL_CopNet_API) → ' .. tostring(BlCopNet.GetApiBaseUrl()))

@@ -67,8 +67,9 @@ local function acceptFocused()
     SetNewWaypoint(call.posX + 0.0, call.posY + 0.0)
   end
   TriggerServerEvent('bl_copnet:dispatchAccept', call.id)
+  local claim = call.claimable and ' – zugeteilt.' or ''
   lib.notify({
-    description = call.posX and 'Einsatz angenommen – Wegpunkt gesetzt.' or 'Einsatz angenommen (kein GPS).',
+    description = (call.posX and ('Einsatz angenommen' .. claim .. ' Wegpunkt gesetzt.') or ('Einsatz angenommen' .. claim)),
     type = 'success',
   })
 end
