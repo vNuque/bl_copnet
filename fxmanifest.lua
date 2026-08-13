@@ -16,6 +16,8 @@ files {
 shared_scripts {
   '@ox_lib/init.lua',
   'config.lua',
+  'shared/vehicle_labels_data.lua',
+  'shared/vehicle_labels.lua',
 }
 
 client_scripts {

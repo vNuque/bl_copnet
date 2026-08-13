@@ -18,15 +18,35 @@ local function vehicleStatus(row)
   return 'out'
 end
 
-local function vehicleModel(row)
+local function rawVehicleModel(row)
   if row.nickname and tostring(row.nickname) ~= '' then
-    return tostring(row.nickname)
+    return tostring(row.nickname), true -- already a label
   end
+  for _, key in ipairs({ 'name', 'vehicle_name', 'vehiclename', 'model_name', 'modelname' }) do
+    local val = row[key]
+    if val ~= nil and tostring(val) ~= '' then
+      return tostring(val), true
+    end
+  end
+
   local props = decodeJson(row.vehicle)
-  if props.model ~= nil then
-    return tostring(props.model)
+  if props.modelName and tostring(props.modelName) ~= '' then
+    return tostring(props.modelName), false
   end
-  return ''
+  if props.name and tostring(props.name) ~= '' and not tostring(props.name):match('^-?%d+$') then
+    return tostring(props.name), true
+  end
+  if props.model ~= nil then
+    return props.model, false
+  end
+  return '', true
+end
+
+local function vehicleModel(row)
+  local raw, isLabel = rawVehicleModel(row)
+  if raw == nil or tostring(raw) == '' then return '' end
+  if isLabel then return tostring(raw) end
+  return BlCopNet.LookupVehicleLabel(raw)
 end
 
 function BlCopNet.GetDiscordId(src)

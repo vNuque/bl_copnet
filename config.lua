@@ -49,6 +49,18 @@ Config.FullDbSyncDelayMs = 750
 -- Debug-Logs in der Server-Konsole
 Config.Debug = false
 
+--[[
+  Optionale Fahrzeug-Label-Overrides (Addon-Cars etc.).
+  Keys: Spawn-Name und/oder Hash als String.
+  Beispiel:
+    Config.VehicleLabels = {
+      myaddoncar = 'Mein Addon',
+      ['-123456789'] = 'Mein Addon',
+    }
+]]
+Config.VehicleLabels = {
+}
+
 -- Manuelle Commands (ACE: command.blcopnet für sync/duty)
 Config.Commands = {
   syncMe = 'copnet_syncme',       -- eigenen Charakter syncen
