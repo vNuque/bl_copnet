@@ -16,8 +16,6 @@ files {
 shared_scripts {
   '@ox_lib/init.lua',
   'config.lua',
-  'shared/vehicle_labels_data.lua',
-  'shared/vehicle_labels.lua',
 }
 
 client_scripts {
@@ -46,5 +44,7 @@ dependencies {
   'es_extended',
   'oxmysql',
   'ox_lib',
-  'BL_CopNet_API',
+  -- BL_CopNet_API: weiche Abhängigkeit (siehe server/api.lua).
+  -- Hartes ensure würde bl_copnet komplett blockieren, wenn die API fehlt.
 }
+

@@ -1,6 +1,17 @@
 ESX = exports['es_extended']:getSharedObject()
 
 CreateThread(function()
+  Wait(500)
+  if GetResourceState('BL_CopNet_API') ~= 'started' then
+    print('^1[bl_copnet] WARN: BL_CopNet_API ist nicht gestartet.^0')
+    print('^3[bl_copnet] Bitte Resource BL_CopNet_API installieren und VOR bl_copnet ensure\'n.^0')
+    print('^3[bl_copnet] Ohne API keine Website-Kommunikation (Duty/Sync/Tablet).^0')
+  else
+    print(('[bl_copnet] gestartet → %s'):format(tostring(BlCopNet.GetApiBaseUrl())))
+  end
+end)
+
+CreateThread(function()
   Wait(1500)
   if Config.FullDbSyncOnStart then
     BlCopNet.SyncAllUsers()
@@ -59,5 +70,3 @@ RegisterCommand(Config.Commands.dutyTest, function(src, args)
     TriggerClientEvent('esx:showNotification', src, 'Usage: /' .. Config.Commands.dutyTest .. ' on|off')
   end
 end, true)
-
-print('[bl_copnet] gestartet (Website nur via BL_CopNet_API) → ' .. tostring(BlCopNet.GetApiBaseUrl()))

@@ -51,10 +51,9 @@ RegisterCommand('copnet_plate', function(src, args)
       return
     end
     local v = list[1]
-    local line = ('%s · %s %s · %s'):format(
+    local line = ('%s · %s · %s'):format(
       tostring(v.plate or plate),
       tostring(v.vehicleType or ''),
-      tostring(v.model or ''),
       tostring(v.ownerLabel or v.statusLabel or v.status or '')
     )
     notify(src, 'CopNet: ' .. line)

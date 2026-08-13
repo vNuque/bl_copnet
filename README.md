@@ -106,7 +106,7 @@ Spieler können sie jederzeit selbst umbelegen: **Esc → Einstellungen → Tast
 
 ```lua
 exports['bl_copnet']:LookupVehicle('ABC123', function(ok, vehicle)
-  -- vehicle.plate, model, ownerLabel, statusLabel, source ('register'|'person_akte')
+  -- vehicle.plate, vehicleType, ownerLabel, statusLabel, source ('register'|'person_akte')
 end)
 
 exports['bl_copnet']:LookupVehicles({ plate = 'ABC123' }, function(ok, data)

@@ -1,13 +1,5 @@
 BlCopNet = BlCopNet or {}
 
-local function decodeJson(raw)
-  if type(raw) == 'table' then return raw end
-  if type(raw) ~= 'string' or raw == '' then return {} end
-  local ok, data = pcall(json.decode, raw)
-  if ok and type(data) == 'table' then return data end
-  return {}
-end
-
 local function vehicleStatus(row)
   if row.impound == 1 or row.impound == true or (row.impound_data and tostring(row.impound_data) ~= '' and tostring(row.impound_data) ~= 'null') then
     return 'impound'
@@ -16,37 +8,6 @@ local function vehicleStatus(row)
     return 'garage'
   end
   return 'out'
-end
-
-local function rawVehicleModel(row)
-  if row.nickname and tostring(row.nickname) ~= '' then
-    return tostring(row.nickname), true -- already a label
-  end
-  for _, key in ipairs({ 'name', 'vehicle_name', 'vehiclename', 'model_name', 'modelname' }) do
-    local val = row[key]
-    if val ~= nil and tostring(val) ~= '' then
-      return tostring(val), true
-    end
-  end
-
-  local props = decodeJson(row.vehicle)
-  if props.modelName and tostring(props.modelName) ~= '' then
-    return tostring(props.modelName), false
-  end
-  if props.name and tostring(props.name) ~= '' and not tostring(props.name):match('^-?%d+$') then
-    return tostring(props.name), true
-  end
-  if props.model ~= nil then
-    return props.model, false
-  end
-  return '', true
-end
-
-local function vehicleModel(row)
-  local raw, isLabel = rawVehicleModel(row)
-  if raw == nil or tostring(raw) == '' then return '' end
-  if isLabel then return tostring(raw) end
-  return BlCopNet.LookupVehicleLabel(raw)
 end
 
 function BlCopNet.GetDiscordId(src)
@@ -91,7 +52,6 @@ function BlCopNet.FetchVehicles(identifier)
   for _, row in ipairs(rows) do
     out[#out + 1] = {
       plate = row.plate,
-      model = vehicleModel(row),
       vehicleType = row.type or 'car',
       status = vehicleStatus(row),
     }
