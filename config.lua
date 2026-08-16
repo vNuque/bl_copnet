@@ -200,8 +200,8 @@ Config.LiveMap = {
   mode = 'auto', -- auto | upload | fetch
 
   -- Resource auf dem Server, die die echte Map-PNG/JPG enthält:
-  sourceResource = '', -- z.B. 'my_webmap' oder 'oulsen_satmap_web'
-  imageFile = 'html/livemap-map.png', -- relativ zur sourceResource
+  sourceResource = '', -- leer = bl_copnet selbst
+  imageFile = 'html/livemap-map.jpg', -- relativ zur sourceResource
   -- imagePath = '/home/fivem/server-data/maps/satmap.png',
 
   -- Optional: Karte von URL laden (Script greift → CopNet)
