@@ -100,12 +100,47 @@
       margin-top: 10px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-end;
+      gap: 10px;
       color: var(--muted);
       font-size: 12px;
     }
     .hint { color: var(--accent); font-weight: 600; }
-    .ago { display: flex; align-items: center; gap: 6px; }
+    .ago { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .keys {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .keychip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 7px;
+      padding: 4px 7px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.2;
+    }
+    .keychip kbd {
+      display: inline-block;
+      min-width: 1.35em;
+      text-align: center;
+      background: rgba(96,165,250,.18);
+      border: 1px solid rgba(96,165,250,.35);
+      color: #dbeafe;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .card.focused .keychip {
+      background: rgba(96,165,250,.10);
+    }
 
     #tablet {
       display: none;
@@ -257,6 +292,8 @@
     const tabletClock = document.getElementById('tablet-clock');
     let tabletClockTimer = null;
 
+    let keyHints = { accept: 'G', cycle: 'H', dismiss: 'J' };
+
     function esc(s) {
       return String(s ?? '').replace(/[&<>"']/g, (c) => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -294,6 +331,16 @@
       return `<div class="row">${icon(ico)}<span>${esc(text)}</span></div>`;
     }
 
+    function keyRow(focused, claimable) {
+      const acceptLabel = claimable ? 'Annehmen + zuteilen' : 'Annehmen';
+      const chips = [
+        `<span class="keychip"><kbd>${esc(keyHints.accept)}</kbd>${esc(acceptLabel)}</span>`,
+        `<span class="keychip"><kbd>${esc(keyHints.cycle)}</kbd>Nächster</span>`,
+        `<span class="keychip"><kbd>${esc(keyHints.dismiss)}</kbd>Ausblenden</span>`,
+      ];
+      return `<div class="keys">${chips.join('')}</div>`;
+    }
+
     function render(calls) {
       if (!Array.isArray(calls) || !calls.length) {
         stack.innerHTML = '';
@@ -321,8 +368,9 @@
               <div class="badge">${icon('badge')}</div>
             </div>
             <div class="rows">${lines}</div>
+            ${c.focused ? keyRow(true, c.claimable) : ''}
             <div class="foot">
-              <span class="hint">${c.focused ? (c.claimable ? 'Annehmen = zuteilen' : 'Annehmen-Taste') : ''}</span>
+              <span class="hint">${c.focused ? 'Ausgewählt' : (`${esc(keyHints.cycle)} = wählen`)}</span>
               <span class="ago">${icon('clock')}${esc(timeAgo(c.createdAt))}</span>
             </div>
           </article>`;
@@ -371,7 +419,16 @@
 
     window.addEventListener('message', (e) => {
       const data = e.data || {};
-      if (data.action === 'setCalls') render(data.calls || []);
+      if (data.action === 'setCalls') {
+        if (data.keys && typeof data.keys === 'object') {
+          keyHints = {
+            accept: String(data.keys.accept || keyHints.accept || 'G'),
+            cycle: String(data.keys.cycle || keyHints.cycle || 'H'),
+            dismiss: String(data.keys.dismiss || keyHints.dismiss || 'J'),
+          };
+        }
+        render(data.calls || []);
+      }
       if (data.action === 'openTablet') openTablet(data.url, data.label);
       if (data.action === 'closeTablet') closeTablet();
     });

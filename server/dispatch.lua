@@ -33,7 +33,8 @@ function BlCopNet.AckCall(src, callId, action, cb)
   end
   action = tostring(action or 'accept'):lower()
   BlCopNet.AckDispatchCall(callId, discordId, action, function(ok, data)
-    if ok and action == 'dismiss' then
+    -- Annehmen + Ausblenden: Meldung vom Bildschirm dieses Officers nehmen
+    if ok and (action == 'dismiss' or action == 'accept') then
       dismissed[src] = dismissed[src] or {}
       dismissed[src][tostring(callId)] = true
     end

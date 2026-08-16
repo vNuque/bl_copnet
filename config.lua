@@ -102,6 +102,20 @@ Config.Keybinds = {
 Config.Tablet = {
   enabled = true,
   redirect = '/dashboard', -- Startseite nach Login (z.B. /dashboard, /persons, /patrol)
+  -- Prop + Animation in der Hand, solange das NUI-Tablet offen ist
+  prop = {
+    enabled = true,
+    model = `prop_cs_tablet`,
+    bone = 28422, -- PH_R_Hand
+    -- Offset/Rotation relativ zum Knochen (kann je nach Ped/Skin leicht abweichen)
+    pos = { x = 0.0, y = 0.0, z = 0.03 },
+    rot = { x = 0.0, y = 0.0, z = 0.0 },
+  },
+  anim = {
+    dict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base',
+    name = 'base',
+    flag = 49, -- oberen Körper loop, Bewegung erlaubt
+  },
 }
 
 -- Zugeteilte CAD-Einsätze (Ingame-Cards)

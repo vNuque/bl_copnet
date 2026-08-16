@@ -16,6 +16,7 @@ files {
 shared_scripts {
   '@ox_lib/init.lua',
   'config.lua',
+  'shared/vehicle_colors.lua',
 }
 
 client_scripts {

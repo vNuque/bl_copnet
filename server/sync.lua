@@ -53,6 +53,7 @@ function BlCopNet.FetchVehicles(identifier)
     out[#out + 1] = {
       plate = row.plate,
       vehicleType = row.type or 'car',
+      color = BlCopNet.LookupVehicleColor(row),
       status = vehicleStatus(row),
     }
   end
