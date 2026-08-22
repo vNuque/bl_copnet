@@ -313,6 +313,20 @@ RegisterNetEvent('bl_copnet:setTracking', function(enabled)
   tracking = enabled and true or false
   TriggerEvent('bl_copnet:dutyState', tracking)
   syncStgRadial()
+  if tracking then
+    local ped = PlayerPedId()
+    if ped and ped ~= 0 then
+      local coords = GetEntityCoords(ped)
+      TriggerServerEvent('bl_copnet:position', coords.x, coords.y)
+    end
+  end
+end)
+
+RegisterNetEvent('bl_copnet:requestPosition', function()
+  local ped = PlayerPedId()
+  if not ped or ped == 0 then return end
+  local coords = GetEntityCoords(ped)
+  TriggerServerEvent('bl_copnet:position', coords.x, coords.y)
 end)
 
 -- Client meldet nur einen Duty-Hint; Server entscheidet (Flag-Vorrang + Rate-Limit).

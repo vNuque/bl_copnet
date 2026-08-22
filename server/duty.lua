@@ -6,7 +6,22 @@ local lastPosition = {} -- [src] = { x, y, at }
 
 local function isDutyJob(jobName)
   if not jobName then return false end
-  return Config.DutyJobs[jobName] == true
+  if Config.DutyJobs[jobName] == false then return false end
+  if Config.DutyJobs[jobName] == true then return true end
+  local n = tostring(jobName):lower()
+  return n:find('police', 1, true)
+    or n:find('sheriff', 1, true)
+    or n:find('lspd', 1, true)
+    or n:find('lssd', 1, true)
+    or n:find('bcso', 1, true)
+    or n:find('fib', 1, true)
+    or n:find('doj', 1, true)
+    or n:find('usms', 1, true)
+    or n:find('ambulance', 1, true)
+    or n:find('medic', 1, true)
+    or n:find('lsmd', 1, true)
+    or n:find('ems', 1, true)
+    or n:find('fire', 1, true)
 end
 
 local function setTracked(src, onDuty, jobName)
@@ -82,6 +97,9 @@ function BlCopNet.SetDutyTracking(src, onDuty, jobName)
     lastPosition[src] = nil
   end
   TriggerClientEvent('bl_copnet:setTracking', src, onDuty and true or false)
+  if onDuty then
+    TriggerClientEvent('bl_copnet:requestPosition', src)
+  end
 end
 
 function BlCopNet.HandleDutyChange(src, job, lastJob)
@@ -98,21 +116,27 @@ function BlCopNet.HandleDutyChange(src, job, lastJob)
         job = jobName,
         grade = job and job.grade or 0,
       })
-      TriggerClientEvent('bl_copnet:setTracking', src, true)
       if Config.Debug then
         BlCopNet.Debug('Duty ON src=%s job=%s', src, tostring(jobName))
       end
     end
+    -- Client nach Restart/Reconnect immer wieder scharf schalten, sonst bleibt GPS aus.
+    TriggerClientEvent('bl_copnet:setTracking', src, true)
+    TriggerClientEvent('bl_copnet:requestPosition', src)
     return
   end
 
   if prev and prev.onDuty then
     setTracked(src, false, jobName)
     lastPosition[src] = nil
-    BlCopNet.SendEvent('clock_out', discordId, {
-      job = prev.job,
-      reason = tracked and 'off_duty' or 'job_change',
-    })
+    -- Kurzes Duty-Flackern nicht sofort ausstempeln (esx:setJob / Client-Hint).
+    SetTimeout(20000, function()
+      if BlCopNet.IsPlayerTrackedOnDuty(src) then return end
+      BlCopNet.SendEvent('clock_out', discordId, {
+        job = prev.job,
+        reason = tracked and 'off_duty' or 'job_change',
+      })
+    end)
     TriggerClientEvent('bl_copnet:setTracking', src, false)
     if Config.Debug then
       BlCopNet.Debug('Duty OFF src=%s reason=%s', src, tracked and 'off_duty' or 'job_change')
@@ -282,12 +306,15 @@ RegisterNetEvent('bl_copnet:clientDutySync', function(clientDuty)
       BlCopNet.Debug('clientDutySync ON src=%s job=%s', src, tostring(job.name))
     end
   else
-    BlCopNet.SendEvent('clock_out', discordId, {
-      job = job.name,
-      reason = 'off_duty',
-      source = 'client_hint',
-    })
     BlCopNet.SetDutyTracking(src, false, job.name)
+    SetTimeout(20000, function()
+      if BlCopNet.IsPlayerTrackedOnDuty(src) then return end
+      BlCopNet.SendEvent('clock_out', discordId, {
+        job = job.name,
+        reason = 'off_duty',
+        source = 'client_hint',
+      })
+    end)
     if Config.Debug then
       BlCopNet.Debug('clientDutySync OFF src=%s job=%s', src, tostring(job.name))
     end
@@ -312,4 +339,38 @@ RegisterNetEvent('bl_copnet:position', function(x, y)
   local src = source
   if type(x) ~= 'number' or type(y) ~= 'number' then return end
   BlCopNet.SendPosition(src, x + 0.0, y + 0.0)
+end)
+
+-- Nach Resource-Start: alle Online-Officer erneut an CopNet melden
+-- (sonst bleiben sie unsichtbar, wenn clock_in vorher 403 war).
+CreateThread(function()
+  Wait(6000)
+  if not ESX then return end
+  for _, sid in ipairs(GetPlayers()) do
+    local src = tonumber(sid)
+    if src then
+      local xPlayer = ESX.GetPlayerFromId(src)
+      if xPlayer then
+        BlCopNet.HandleDutyChange(src, xPlayer.getJob and xPlayer.getJob() or xPlayer.job)
+      end
+    end
+  end
+end)
+
+-- Heartbeat: Stempeluhr offen halten, solange FiveM sie on-duty trackt
+CreateThread(function()
+  while true do
+    Wait(90000)
+    for src, state in pairs(dutyState) do
+      if state and state.onDuty then
+        local discordId = BlCopNet.GetDiscordId(src)
+        if discordId then
+          BlCopNet.SendEvent('clock_in', discordId, {
+            job = state.job,
+            source = 'heartbeat',
+          })
+        end
+      end
+    end
+  end
 end)

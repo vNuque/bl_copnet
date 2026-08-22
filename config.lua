@@ -8,8 +8,9 @@ Config = {}
 -- Jobs, die Stempeluhr + Live-Position + Radialmenü an CopNet melden
 Config.DutyJobs = {
   police = true,
-  -- sheriff = true,
-  -- fib = true,
+  sheriff = true,
+  ambulance = true,
+  -- explizit aus: Config.DutyJobs.offambulance = false
 }
 
 -- Position alle X ms an CopNet senden (nur on-duty)
@@ -197,18 +198,14 @@ Config.LiveMap = {
   enabled = true,
   uploadOnStart = true,
   uploadDelayMs = 4000,
-  mode = 'auto', -- auto | upload | fetch
 
   -- Resource auf dem Server, die die echte Map-PNG/JPG enthält:
   sourceResource = '', -- leer = bl_copnet selbst
   imageFile = 'html/livemap-map.jpg', -- relativ zur sourceResource
   -- imagePath = '/home/fivem/server-data/maps/satmap.png',
 
-  -- Optional: Karte von URL laden (Script greift → CopNet)
-  -- sourceUrl = 'https://cdn.example.com/gta-satmap.jpg',
-
-  -- Optional: öffentlicher FiveM-Endpoint, damit CopNet die Karte selbst pullen kann
-  -- publicBaseUrl = 'http://DEINE-SERVER-IP:30120',
+  -- CopNet holt die Karte selbst (kein Base64-Upload):
+  publicBaseUrl = 'http://57.129.61.19:30120',
 
   sourceResourceFallbacks = {
     -- 'my_livemap',

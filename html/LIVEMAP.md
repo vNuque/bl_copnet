@@ -6,35 +6,22 @@
 
 In `config.lua` → `Config.LiveMap` eine Quelle setzen:
 
-### A) Datei in einer Resource auf dem Server (empfohlen)
+### A) Datei in einer Resource auf dem Server
 
 ```lua
-sourceResource = 'meine_webmap',  -- Resource-Name auf dem Gameserver
-imageFile = 'map.png',            -- PNG/JPG relativ zu dieser Resource
+sourceResource = 'meine_webmap',
+imageFile = 'map.png',
+publicBaseUrl = 'http://DEINE-SERVER-IP:30120',
 ```
 
-Die Datei muss eine **Web-Karte** sein (PNG/JPG), keine `.ytd`-Minimap-Textures.
+CopNet holt die Datei über `http://IP:30120/bl_copnet/livemap-map`. Kein Base64-Upload.
 
 ### B) Absoluter Pfad auf dem Gameserver
 
 ```lua
 imagePath = '/home/fivem/server-data/maps/satmap.png',
-```
-
-### C) URL (Script lädt und pusht nach CopNet)
-
-```lua
-sourceUrl = 'https://cdn.example.com/gta-satmap.jpg',
-```
-
-### D) CopNet pullt vom FiveM-HTTP
-
-```lua
-mode = 'fetch',
 publicBaseUrl = 'http://DEINE-SERVER-IP:30120',
 ```
-
-Dann erreichbar unter: `http://IP:30120/bl_copnet/livemap-map`
 
 ## Bounds
 
