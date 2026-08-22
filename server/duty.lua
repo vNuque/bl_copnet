@@ -3,6 +3,7 @@ BlCopNet = BlCopNet or {}
 local dutyState = {} -- [src] = { onDuty = bool, job = string }
 local clientSyncMeta = {} -- [src] = { lastAt = ms, changes = {t1,t2,...} }
 local lastPosition = {} -- [src] = { x, y, at }
+local clockOutToken = {} -- [src] = number, bricht verzögertes Ausstempeln ab
 
 local function isDutyJob(jobName)
   if not jobName then return false end
@@ -81,6 +82,23 @@ local function allowClientDutyHint(src)
   return true
 end
 
+local function nextClockOutToken(src)
+  local token = (clockOutToken[src] or 0) + 1
+  clockOutToken[src] = token
+  return token
+end
+
+local function scheduleClockOut(src, discordId, payload)
+  local token = nextClockOutToken(src)
+  -- Kurzes Duty-Flackern (esx:setJob) nicht sofort ausstempeln.
+  SetTimeout(3000, function()
+    if clockOutToken[src] ~= token then return end
+    if BlCopNet.IsPlayerTrackedOnDuty(src) then return end
+    clockOutToken[src] = nil
+    BlCopNet.SendEvent('clock_out', discordId, payload)
+  end)
+end
+
 function BlCopNet.IsPlayerTrackedOnDuty(src)
   local state = dutyState[src]
   return state and state.onDuty == true
@@ -105,11 +123,21 @@ end
 function BlCopNet.HandleDutyChange(src, job, lastJob)
   local discordId = BlCopNet.GetDiscordId(src)
   local jobName = job and job.name or nil
-  local onDuty = resolveOnDuty(job)
   local tracked = isDutyJob(jobName)
   local prev = dutyState[src]
+  local serverFlag = getServerDutyFlag(job)
+  local onDuty
+  if serverFlag ~= nil then
+    onDuty = serverFlag == true and tracked
+  elseif prev then
+    -- Ohne ESX-Flag gilt der letzte Stand (Client-Hint). Job-Name allein stempelt nicht wieder ein.
+    onDuty = prev.onDuty == true and tracked
+  else
+    onDuty = resolveOnDuty(job)
+  end
 
   if tracked and onDuty then
+    nextClockOutToken(src)
     if not prev or not prev.onDuty or prev.job ~= jobName then
       setTracked(src, true, jobName)
       BlCopNet.SendEvent('clock_in', discordId, {
@@ -129,14 +157,10 @@ function BlCopNet.HandleDutyChange(src, job, lastJob)
   if prev and prev.onDuty then
     setTracked(src, false, jobName)
     lastPosition[src] = nil
-    -- Kurzes Duty-Flackern nicht sofort ausstempeln (esx:setJob / Client-Hint).
-    SetTimeout(20000, function()
-      if BlCopNet.IsPlayerTrackedOnDuty(src) then return end
-      BlCopNet.SendEvent('clock_out', discordId, {
-        job = prev.job,
-        reason = tracked and 'off_duty' or 'job_change',
-      })
-    end)
+    scheduleClockOut(src, discordId, {
+      job = prev.job,
+      reason = tracked and 'off_duty' or 'job_change',
+    })
     TriggerClientEvent('bl_copnet:setTracking', src, false)
     if Config.Debug then
       BlCopNet.Debug('Duty OFF src=%s reason=%s', src, tracked and 'off_duty' or 'job_change')
@@ -223,6 +247,7 @@ function BlCopNet.SendPosition(src, x, y)
 end
 
 function BlCopNet.ClearPlayer(src)
+  nextClockOutToken(src)
   local prev = dutyState[src]
   if prev and prev.onDuty then
     local discordId = BlCopNet.GetDiscordId(src)
@@ -231,6 +256,7 @@ function BlCopNet.ClearPlayer(src)
   dutyState[src] = nil
   clientSyncMeta[src] = nil
   lastPosition[src] = nil
+  clockOutToken[src] = nil
 end
 
 AddEventHandler('esx:setJob', function(playerId, job, lastJob)
@@ -271,7 +297,16 @@ RegisterNetEvent('bl_copnet:clientDutySync', function(clientDuty)
 
   local job = xPlayer.getJob and xPlayer.getJob() or xPlayer.job
   if type(job) ~= 'table' or not isDutyJob(job.name) then
+    local wasOn = BlCopNet.IsPlayerTrackedOnDuty(src)
+    local discordId = BlCopNet.GetDiscordId(src)
     BlCopNet.SetDutyTracking(src, false, job and job.name or '')
+    if wasOn then
+      scheduleClockOut(src, discordId, {
+        job = job and job.name or '',
+        reason = 'job_change',
+        source = 'client_hint',
+      })
+    end
     return
   end
 
@@ -296,6 +331,7 @@ RegisterNetEvent('bl_copnet:clientDutySync', function(clientDuty)
 
   local discordId = BlCopNet.GetDiscordId(src)
   if onDuty then
+    nextClockOutToken(src)
     BlCopNet.SendEvent('clock_in', discordId, {
       job = job.name,
       grade = job.grade or 0,
@@ -307,14 +343,11 @@ RegisterNetEvent('bl_copnet:clientDutySync', function(clientDuty)
     end
   else
     BlCopNet.SetDutyTracking(src, false, job.name)
-    SetTimeout(20000, function()
-      if BlCopNet.IsPlayerTrackedOnDuty(src) then return end
-      BlCopNet.SendEvent('clock_out', discordId, {
-        job = job.name,
-        reason = 'off_duty',
-        source = 'client_hint',
-      })
-    end)
+    scheduleClockOut(src, discordId, {
+      job = job.name,
+      reason = 'off_duty',
+      source = 'client_hint',
+    })
     if Config.Debug then
       BlCopNet.Debug('clientDutySync OFF src=%s job=%s', src, tostring(job.name))
     end
