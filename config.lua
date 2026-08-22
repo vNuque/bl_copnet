@@ -211,9 +211,10 @@ Config.LiveMap = {
     -- 'my_livemap',
   },
 
+  -- Muss zum Kartenbild passen (4096x6144 = X −4000…4000, Y −4000…8000).
   bounds = {
     xMin = -4000,
-    xMax = 4500,
+    xMax = 4000,
     yMin = -4000,
     yMax = 8000,
   },

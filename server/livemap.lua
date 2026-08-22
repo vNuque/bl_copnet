@@ -79,7 +79,7 @@ local function boundsFromConfig(cfg)
   local bounds = (cfg and cfg.bounds) or {}
   return {
     xMin = tonumber(bounds.xMin) or -4000,
-    xMax = tonumber(bounds.xMax) or 4500,
+    xMax = tonumber(bounds.xMax) or 4000,
     yMin = tonumber(bounds.yMin) or -4000,
     yMax = tonumber(bounds.yMax) or 8000,
   }
